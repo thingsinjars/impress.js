@@ -145,38 +145,39 @@
         scale:     1
     };
 
-    steps.forEach(function ( el, idx ) {
-        var data = el.dataset,
-            step = {
-                translate: {
-                    x: data.x || 0,
-                    y: data.y || 0,
-                    z: data.z || 0
-                },
-                rotate: {
-                    x: data.rotateX || 0,
-                    y: data.rotateY || 0,
-                    z: data.rotateZ || data.rotate || 0
-                },
-                scale: data.scale || 1
-            };
+	var applyStyles = function ( el, idx ) {
+	        var data = el.dataset,
+	            step = {
+	                translate: {
+	                    x: data.x || 0,
+	                    y: data.y || 0,
+	                    z: data.z || 0
+	                },
+	                rotate: {
+	                    x: data.rotateX || 0,
+	                    y: data.rotateY || 0,
+	                    z: data.rotateZ || data.rotate || 0
+	                },
+	                scale: data.scale || 1
+	            };
         
-        el.stepData = step;
+	        el.stepData = step;
         
-        if ( !el.id ) {
-            el.id = "step-" + (idx + 1);
-        }
+	        if ( !el.id ) {
+	            el.id = "step-" + (idx + 1);
+	        }
         
-        css(el, {
-            position: "absolute",
-            transform: "translate(-50%,-50%)" +
-                       translate(step.translate) +
-                       rotate(step.rotate) +
-                       scale(step.scale),
-            transformStyle: "preserve-3d"
-        });
+	        css(el, {
+	            position: "absolute",
+	            transform: "translate(-50%,-50%)" +
+	                       translate(step.translate) +
+	                       rotate(step.rotate) +
+	                       scale(step.scale),
+	            transformStyle: "preserve-3d"
+	        });
         
-    });
+	}
+	steps.forEach(applyStyles);
 
     // making given step active
 
@@ -254,8 +255,7 @@
     }
     
     // EVENTS
-    
-    document.addEventListener("keydown", function ( event ) {
+	var keyHandler = function ( event ) {
         if ( event.keyCode == 9 || ( event.keyCode >= 32 && event.keyCode <= 34 ) || (event.keyCode >= 37 && event.keyCode <= 40) ) {
             var next = active;
             switch( event.keyCode ) {
@@ -279,12 +279,17 @@
             
             event.preventDefault();
         }
-    }, false);
+    };
 
-    document.addEventListener("click", function ( event ) {
-        // event delegation with "bubbling"
+    
+	document.addEventListener("keydown", keyHandler, false);
+	//Emulating an event to minimise modification to existing code
+	var next = function() {keyHandler({'keyCode':32,preventDefault:function(){}})};
+	
+
+	var getTarget = function(eventTarget) {
         // check if event target (or any of its parents is a link or a step)
-        var target = event.target;
+        var target = eventTarget;
         while ( (target.tagName != "A") &&
                 (!target.stepData) &&
                 (target != document.body) ) {
@@ -299,17 +304,27 @@
                 target = byId( href.slice(1) );
             }
         }
-        
+		return target;
+	};
+
+	var clickHandler = function ( event ) {
+        // event delegation with "bubbling"
+        // check if event target (or any of its parents is a link or a step)
+        var target = getTarget(event.target);
+
         if ( select(target) ) {
             event.preventDefault();
         }
-    }, false);
+    };
+    document.addEventListener("click", clickHandler, false);
     
-    document.addEventListener("mousewheel", function ( event ) {
-        next = steps.indexOf( active ) - event.wheelDelta / Math.abs(event.wheelDelta);
-        next = next >= 0 ? steps[ next ] : steps[ steps.length-1 ];
-        select(next);
-    }, false);
+	var mouseWheelHandler = function ( event ) {
+	        next = steps.indexOf( active ) - event.wheelDelta / Math.abs(event.wheelDelta);
+	        next = next >= 0 ? steps[ next ] : steps[ steps.length-1 ];
+	        select(next);
+	}
+		
+	document.addEventListener("mousewheel", mouseWheelHandler, false);
     
     var getElementFromUrl = function () {
         // get id from url # by removing `#` or `#/` from the beginning,
@@ -325,5 +340,13 @@
     // by selecting step defined in url or first step of the presentation
     select(getElementFromUrl() || steps[0]);
 
-})(document, window);
 
+	//Exposing an object to allow an API for external tools
+	window.ImpressJS = {
+		next : next,
+		select : select,
+		update : applyStyles,
+		target : getTarget
+	}
+
+})(document, window);
