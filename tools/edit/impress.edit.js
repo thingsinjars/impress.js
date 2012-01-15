@@ -62,7 +62,7 @@
     
     document.addEventListener("mouseup", function ( event ) {
               mouseDown = false;
-              updateMode("Edit mode");
+              updateMode();
     });
 
     function format(number, dp) {
@@ -74,12 +74,16 @@
     var getDoctype = function(a,b){with(document.doctype)return'<!DOCTYPE '+name+((b=publicId,a=systemId)?(b?' PUBLIC "'+b+'" ':' SYSTEM ')+'"'+a+'"':'')+'>'};
     function generateMarkup() {
       var doctype = getDoctype();
+      var html = '<html lang="'+document.all[0].getAttribute('lang')+'">';
       var markup = document.all[0].innerHTML;
-      return doctype+"\n"+markup;
+      return doctype+"\n"+html+"\n"+markup+"</html>";
     }
     
     function updateMode(editMode) {
       var statusBar = document.getElementById('statusBar');
+	  if(!editMode) {
+		  editMode = "Hold down<br/><strong>Shift</strong> to rotate<br/><strong>Alt</strong> to scale<br/><strong>Ctrl/Cmd</strong> to move<br/>click here to output to the console";
+	  }
       if(!statusBar) {
           statusBar = document.createElement('div');
           statusBar.id = 'statusBar';
@@ -91,15 +95,25 @@
             color = '#444';
           }
           document.body.appendChild(statusBar);
-          statusBar.addEventListener("click", function ( event ) {
-            console.log(generateMarkup());
-          });
+          statusBar.addEventListener("mousedown", function ( event ) {
+			  var statusBar = document.getElementById('statusBar');
+			  document.body.removeChild(statusBar);
+
+			  var styleblock = document.getElementById('impressnoselect');
+			  document.body.removeChild(styleblock);
+			  
+              console.log(generateMarkup());
+			  
+	          document.body.appendChild(statusBar);
+	          document.body.appendChild(styleblock);
+          }, false);
       }
       statusBar.innerHTML = editMode;
     }
+	updateMode();
     
     /* To prevent text highlighting when dragging */
-    var div = document.createElement('div'); div.innerHTML ='x<style>*{-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;-o-user-select: none;user-select: none;}</style>';document.body.appendChild(div.lastChild);
+    var div = document.createElement('div'); div.innerHTML ='x<style id="impressnoselect">*{-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;-o-user-select: none;user-select: none;}</style>';document.body.appendChild(div.lastChild);
     
     // From https://github.com/zachstronaut/jquery-css-transform/blob/master/jquery-css-transform.js
     function getTransformProperty(element) {
